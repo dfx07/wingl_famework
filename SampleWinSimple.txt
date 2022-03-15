@@ -1,0 +1,119 @@
+Với Visual Studio
+  
+include:
+<AdditionalIncludeDirectories>
+	..\..\modules\include;
+	..\..\modules\include\glm;
+	..\..\modules\include\ftgl;
+	..\..\modules\include\freetype;
+	..\..\modules\include\glew;%(AdditionalIncludeDirectories)
+</AdditionalIncludeDirectories>
+  
+libs:  	glu32.lib;glew32.lib;freetype.lib;ftgl.lib;
+
+
+#include <GLWindow.h>
+#include <GLFont.h>
+#include <GLCamera.h>
+#include <GLRenderer.h>
+
+
+GLCamera2D    cam2d;
+GLFontManager font;
+GLRenderer    render;
+
+glm::vec3 pos = { 0, 0, 8 };
+glm::vec3 dir = { 0, 0, 1 };
+glm::vec3 up  = { 0, 1, 0 };
+
+void OnCreate(Window* win)
+{
+    cam2d.InitView(win->GetWidth(), win->GetHeight(), 100.0, -1000);
+    cam2d.SetUpCamera(pos, dir, up);
+    cam2d.UpdateMatrix();
+
+    render.AddLine(vec3(0, 0, 0), vec3(0, 100, 0), GL_RED_COL, GL_RED_COL);
+}
+
+void OnDestroy(Window* win)
+{
+
+}
+void OnProcess(Window* win)
+{
+
+}
+
+void Onkeyboard(Window* win)
+{
+    if (win->GetKeyboardStatus(KeyA))
+    {
+    }
+    else if (win->GetKeyboardStatus(KeyD))
+    {
+    }
+}
+
+void OnMouseScroll(Window* win)
+{
+    int delta = win->GetMouseScroll();
+}
+
+void OnResize(Window* win)
+{
+    cam2d.SetViewSize(win->GetWidth(), win->GetHeight());
+    cam2d.UpdateMatrix();
+}
+
+void OnMouseMove(Window* win)
+{
+
+}
+
+void OnMouseButton(Window* win)
+{
+
+}
+
+
+void OnDraw(Window* win)
+{
+    glClearColor(1.0, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    render.Clear();
+    render.UseCamera(&cam2d);
+
+    render.UpdateRender();
+    render.Draw();
+}
+
+int main()
+{
+    GLWindow window;
+
+    WndProp adven;
+    adven.m_iAntialiasing = 8;
+
+    Window* win = new Window("GLWindow", 500, 100, 900, 580);
+    win->SetupAdvanced(adven);
+
+    win->SetProcessfunc(OnProcess);
+    win->SetOnDrawfunc(OnDraw);
+    win->SetOnCreatedfunc(OnCreate);
+    win->SetOnDestroyfunc(OnDestroy);
+    win->SetOnKeyboardfunc(Onkeyboard);
+    win->SetOnMouseScrollfunc(OnMouseScroll);
+    win->SetOnMouseMovefunc(OnMouseMove);
+    win->SetOnResizefunc(OnResize);
+    win->SetOnMouseButtonfunc(OnMouseButton);
+
+    window.AddWindow(win);
+
+    while (window.Closed())
+    {
+        window.Process();
+        window.Draw();
+        window.PollEvent();
+    }
+}
