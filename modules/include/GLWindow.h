@@ -19,6 +19,8 @@
 
 #include <chrono>
 
+#include <windows.h>
+#include "GLWinControl.h"
 #include "GLWinDef.h"
 #include "GLCom.h"
 
@@ -110,6 +112,8 @@ private:
     std::stack<WndStatus>  m_StatusStack;
     GLWindow*              m_pGLWin;
 
+    vector<Control*>       m_controls;
+
 private:
     HWND                   m_hWnd;
     WndProp                m_pProp;
@@ -148,17 +152,18 @@ private:
     void(*m_funOnMouseScroll)  (Window* win) = NULL;
 
 public:
+    HWND GetHwnd()                                          { return m_hWnd; }
     // Get set don't care
-    void SetOnDrawfunc(void(*funOnDraw)(Window*)) { m_funOnDraw = funOnDraw; }
-    void SetOnCreatedfunc(void(*funOnCreate)(Window*)) { m_funOnCreated = funOnCreate; }
-    void SetOnDestroyfunc(void(*funOnDestroy)(Window*)) { m_funOnDestroy = funOnDestroy; }
-    void SetOnPaintfunc(void(*funOnPaint)(Window*)) { m_funOnPaint = funOnPaint; }
-    void SetOnMouseButtonfunc(void(*funOnMouse)(Window*)) { m_funOnMouse = funOnMouse; }
+    void SetOnDrawfunc(void(*funOnDraw)(Window*))           { m_funOnDraw = funOnDraw; }
+    void SetOnCreatedfunc(void(*funOnCreate)(Window*))      { m_funOnCreated = funOnCreate; }
+    void SetOnDestroyfunc(void(*funOnDestroy)(Window*))     { m_funOnDestroy = funOnDestroy; }
+    void SetOnPaintfunc(void(*funOnPaint)(Window*))         { m_funOnPaint = funOnPaint; }
+    void SetOnMouseButtonfunc(void(*funOnMouse)(Window*))   { m_funOnMouse = funOnMouse; }
     void SetOnMouseMovefunc(void(*funOnMouseMove)(Window*)) { m_funOnMouseMove = funOnMouseMove; }
-    void SetOnKeyboardfunc(void(*funOnKeyboard)(Window*)) { m_funOnKeyboard = funOnKeyboard; }
-    void SetProcessfunc(void(*funProcess)(Window*)) { m_funOnProcess = funProcess; }
-    void SetOnResizefunc(void(*funOnResize)(Window*)) { m_funOnResize = funOnResize; }
-    void SetOnMouseScrollfunc(void(*funOnScroll)(Window*)) { m_funOnMouseScroll = funOnScroll; }
+    void SetOnKeyboardfunc(void(*funOnKeyboard)(Window*))   { m_funOnKeyboard = funOnKeyboard; }
+    void SetProcessfunc(void(*funProcess)(Window*))         { m_funOnProcess = funProcess; }
+    void SetOnResizefunc(void(*funOnResize)(Window*))       { m_funOnResize = funOnResize; }
+    void SetOnMouseScrollfunc(void(*funOnScroll)(Window*))  { m_funOnMouseScroll = funOnScroll; }
 
     //==================================================================================
     //⮟⮟ Triển khai hàm   - not important                                              
@@ -273,6 +278,69 @@ private:
     void SetKeyboardStatus(int key, bool status)
     {
         m_keyboard[key] = status;
+    }
+//==================================================================================
+//⮟⮟ Triển khai chính khởi tạo và xử lý control                                    
+//==================================================================================
+private:
+    //==================================================================================
+    // Khởi tạo toàn bộ control đã được thêm                                            
+    //==================================================================================
+    virtual void OnInitControl()
+    {
+        // IDS bắt đầu của control nó sẽ tăng khi vào hàm onInitControl của các control
+        UINT IDS = 1000; 
+        for (int i = 0; i < m_controls.size(); i++)
+        {
+            m_controls[i]->SetParent(m_hWnd);
+            m_controls[i]->OnInitControl(IDS);
+        }
+    }
+
+    //==================================================================================
+    // Xóa và hủy tòa bộ control có trong window                                        
+    //==================================================================================
+    virtual void DestroyControl()
+    {
+        for (int i = 0; i < m_controls.size(); i++)
+        {
+            m_controls[i]->OnDestroy();
+            delete m_controls[i];
+        }
+    }
+
+    //==================================================================================
+    // Xử lý sự kiện khi một Control được kích hoạt sự kiện                             
+    //==================================================================================
+    void OnCommandControl(HWND hwndCtrl, WORD ID, WORD Event)
+    {
+        Control * control = GetControlFormID(ID);
+        if (!control) return;
+        control->Event(this, ID, Event);
+    }
+
+    void OnDrawControl(HWND hwndCtrl, WORD ID)
+    {
+        Control * control = GetControlFormID(ID);
+        if (!control) return;
+        control->Draw();
+    }
+
+    //==================================================================================
+    // Lấy control từ ID của nó                                                         
+    //==================================================================================
+    Control* GetControlFormID(WORD ID)
+    {
+        for (int i = 0; i < m_controls.size(); i++)
+        {
+            INT CtrlID = m_controls[i]->GetID();
+
+            if (CtrlID == ID || m_controls[i]->ContainID(ID))
+            {
+                return m_controls[i];
+            }
+        }
+        return NULL;
     }
 
 //==================================================================================
@@ -435,17 +503,17 @@ private:
         AdjustWindowRect(&wr, m_pProp.m_dwStyle, FALSE);// adjust the size
 
         m_hWnd = CreateWindowEx(             //
-            m_pProp.m_dwExStyle,        //
-            strWndClassName,            //
-            m_title.c_str(),            //
-            m_pProp.m_dwStyle,          //
-            m_x, m_y,                   // Postion 
-            wr.right - wr.left,         // Actual width size
-            wr.bottom - wr.top,         // Actual height size
-            NULL,                       //
-            NULL,                       //
-            NULL,                       //
-            NULL                        //
+                m_pProp.m_dwExStyle,        //
+                strWndClassName,            //
+                m_title.c_str(),            //
+                m_pProp.m_dwStyle,          //
+                m_x, m_y,                   // Postion 
+                wr.right - wr.left,         // Actual width size
+                wr.bottom - wr.top,         // Actual height size
+                NULL,                       //
+                NULL,                       //
+                NULL,                       //
+                NULL                        //
         );
 
         // Create window failed
@@ -483,6 +551,9 @@ private:
         this->CreateOpenGLContext(bInitOpenGLEx);
 
         this->OnCreated();
+
+        // Initialization control
+        this->OnInitControl();
 
         return true;
     }
@@ -616,9 +687,9 @@ public:
 
     void UpdateStyleWindow()
     {
-        m_pProp.m_dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE; // Window Extended Style
-        m_pProp.m_dwStyle   = WS_OVERLAPPEDWINDOW;                // Windows Style
-
+        m_pProp.m_dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;    // Window Extended Style
+        m_pProp.m_dwStyle   = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN;  // Windows Style
+        //@@ WS_CLIPCHILDREN: Control của window sẽ không được vẽ khi SwapBuffer
 
         if (m_pProp.m_bFullScreen)                           // Are We Still In Fullscreen Mode?
         {
@@ -678,6 +749,10 @@ public:
         return false;
     }
 
+    void AddControl(Control* control)
+    {
+        m_controls.push_back(control);
+    }
 
     GLWindow* GetGLWindow()    { return m_pGLWin;   }
     int       GetWidth()       { return m_width;    }
@@ -778,6 +853,7 @@ public:
         // Xử lý hủy mặc định
         DeleteGDIplus();
         DeleteOpenGLContext();
+        DestroyControl();       //N.V.Thuong 22.04.2022
         DestroyWindow(m_hWnd);
     }
 
@@ -978,14 +1054,24 @@ public:
             case WM_SIZE: //Check if the window has been resized
             {
                 Window* win = pWinMana->Find(hWnd);
-                if (win)
-                {
-                    win->m_width  = LOWORD(lParam); // width
-                    win->m_height = HIWORD(lParam); // height
-                    glViewport(0, 0, win->m_width, win->m_height);
-                    win->OnResize();
-                }
-                break;
+                if (!win) break;
+
+                win->m_width  = LOWORD(lParam); // width
+                win->m_height = HIWORD(lParam); // height
+
+                glViewport(0, 0, win->m_width, win->m_height);
+                win->OnResize();
+                win->OnDraw();
+                win->SwapBuffer();
+
+                return 0;
+            }
+            case WM_SIZING:
+            {
+                Window* win = pWinMana->Find(hWnd);
+                if (!win) break;
+                glViewport(0, 0, win->m_width, win->m_height);
+                return TRUE;
             }
             case WM_MOUSEWHEEL:
             {
@@ -994,6 +1080,30 @@ public:
                 {
                     win->m_zDeltaScroll = GET_WHEEL_DELTA_WPARAM(wParam)/WHEEL_DELTA;
                     win->OnMouseScroll();
+                }
+                break;
+            }
+            case WM_COMMAND:
+            {
+                Window* win = pWinMana->Find(hWnd);
+                if (win)
+                {
+                    WORD wID  = LOWORD(wParam); // item, control, or accelerator identifier
+                    WORD wEvt = HIWORD(wParam); // item event
+                    HWND hwnd = (HWND) lParam;  // handle of control
+                    win->OnCommandControl(hwnd, wID, wEvt);
+                }
+                break;
+            }
+            case WM_DRAWITEM:
+            {
+                Window* win = pWinMana->Find(hWnd);
+                if (win)
+                {
+                    WORD wID  = LOWORD(wParam); // item, control, or accelerator identifier
+                    HWND hwnd = (HWND) lParam;  // handle of control
+                    LPDRAWITEMSTRUCT pdis = (LPDRAWITEMSTRUCT)lParam;
+                    win->OnDrawControl(hwnd, wID);
                 }
                 break;
             }
@@ -1008,14 +1118,14 @@ public:
             }
             case WM_ERASEBKGND:
             {
-                return 1;
+                return TRUE;
             }
             default:
             {
                 break;
             }
         }
-        return DefWindowProc(hWnd, message, wParam, lParam);;
+        return DefWindowProc(hWnd, message, wParam, lParam);
     }
 
 public:
