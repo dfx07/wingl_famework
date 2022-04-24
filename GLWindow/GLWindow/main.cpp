@@ -6,19 +6,19 @@ glm::mat4   matView;
 glm::mat4   matProject;
 float zoom = 1.0f;
 
-MenuContext* menu;
+MenuContext* menucontext;
 
-void OpenFile(Window* win, MenuContext* mn)
+void OpenFile(Window* win, Control* mn)
 {
     MessageBox(NULL,"OpenFile", "Thong bao", MB_ICONWARNING);
 }
 
-void SaveFile(Window* win, MenuContext* mn)
+void SaveFile(Window* win, Control* mn)
 {
     MessageBox(NULL,"SaveFile", "Thong bao", MB_ICONWARNING);
 }
 
-void OnButton(Window* win, Button* btn)
+void OnButton(Window* win, Control* btn)
 {
     MessageBox(NULL,"ON button", "Thong bao", MB_ICONWARNING);
 }
@@ -38,30 +38,66 @@ void Create(Window* win)
     glViewport(0, 0, width, height);
     matProject = glm::ortho(left, right, top, bottom, double(0.1), double(-1000));
 
-    menu = new MenuContext();
-    MenuItem item;
+    menucontext = new MenuContext();
+    MenuItemBase item;
     item.SetLabel("Open file");
     item.SetType (MF_STRING);
     item.SetEvent(OpenFile);
-    menu->AddItem(item);
+    menucontext->AddItem(item);
 
     item.SetType (MF_SEPARATOR);
-    menu->AddItem(item);
+    menucontext->AddItem(item);
 
     item.SetLabel("Save as...");
     item.SetType (MF_STRING);
     item.SetEvent(SaveFile);
-    menu->AddItem(item);
+    menucontext->AddItem(item);
 
 
-    Button* btn = new Button();
-    btn->SetLabel("Click button");
-    btn->SetPosition(10, 10);
-    btn->SetSize(100, 50);
-    btn->SetEvent(OnButton);
+    //Button* btn = new Button();
+    //btn->SetLabel("Click button");
+    //btn->SetPosition(10, 10);
+    //btn->SetSize(100, 50);
+    //btn->SetEvent(OnButton);
 
-    win->AddControl(menu);
-    win->AddControl(btn);
+    MenuBar* menubar = new MenuBar();
+
+    MenuBarItem menubaritem("File");
+
+    item.SetLabel("Open file");
+    item.SetType(MF_STRING);
+    item.SetEvent(OpenFile);
+    menubaritem.AddItem(item);
+
+    item.SetType(MF_SEPARATOR);
+    menubaritem.AddItem(item);
+
+    item.SetLabel("Save file");
+    item.SetType(MF_STRING);
+    item.SetEvent(OpenFile);
+    menubaritem.AddItem(item);
+
+    menubar->AddItem(menubaritem);
+
+    menubaritem.SetText("Edit");
+
+    item.SetLabel("Create connect");
+    item.SetType(MF_STRING);
+    item.SetEvent(OpenFile);
+    menubaritem.AddItem(item);
+
+    item.SetType(MF_SEPARATOR);
+    menubaritem.AddItem(item);
+
+    item.SetLabel("Save file");
+    item.SetType(MF_STRING);
+    item.SetEvent(OpenFile);
+    menubaritem.AddItem(item);
+
+    menubar->AddItem(menubaritem);
+
+    win->AddControl(menucontext);
+    win->AddControl(menubar);
 }
 
 void MouseButton(Window* win)
@@ -93,7 +129,7 @@ void Keyboard(Window* win)
 
     else if (win->GetKeyboardStatus(GLKeyboard::KeyA))
     {
-        menu->Show(POINT{ 0 ,0 });
+        menucontext->Show(POINT{ 0 ,0 });
     }
 }
 

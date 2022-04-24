@@ -10,6 +10,7 @@
 #include <vector>
 
 class MenuContext;
+class MenuBar;
 class Window;
 
 using namespace std;
@@ -18,6 +19,7 @@ enum CtrlType
 {
     BUTTON     ,
     MENUCONTEXT,
+    MENUBAR,
 };
 
 //===================================================================================
@@ -73,35 +75,38 @@ public:
 //⮟⮟ Lớp MenuContext : Control quản lý Menucontext                                  
 //===================================================================================
 
-
-struct MenuItem
+class MenuItemBase
 {
-private:
-    UINT        m_ID      ;
-    string      m_label   ;
-    UINT        m_type    ;
-    void       (*m_EventFun)(Window* window, MenuContext* menu) =NULL;
+public:
+    UINT        m_ID   ;
+    UINT        m_type ;
+    string      m_label;
 
 public:
-    MenuItem() : m_ID(0), m_label("") {};
-    void SetLabel(string lab) { m_label = lab; }
-    void SetType(UINT type)   { m_type = type; }
+    void(*m_EventFun)(Window* window, Control* ctrl) = NULL;
 
 public:
-    void SetEvent(void(*mn)(Window*, MenuContext*))
+    MenuItemBase()
     {
-        m_EventFun = mn;
-    }
+        m_ID    = 0;
+        m_label = "";
+    };
 
-    friend class MenuContext;
+    void   SetEvent(void(*mn)(Window*, Control*)){ m_EventFun = mn; }
+    void   SetLabel(string lab) { m_label = lab; }
+    void   SetType (UINT type)  { m_type  = type;}
+    void   SetID   (UINT id)    { m_ID    = id;  }
+
+    string GetLabel() { return m_label; }
+    UINT   GetType()  { return m_type;  }
+    UINT   GetID()    { return m_ID;    }
 };
 
 class MenuContext : public Control
 {
 protected:
-    HMENU             m_hMenu;
-
-    vector<MenuItem>  m_items;
+    HMENU                    m_hMenu;
+    vector<MenuItemBase>     m_items;
 
 public:
     MenuContext() : Control(CtrlType::MENUCONTEXT)
@@ -116,15 +121,15 @@ private:
 
         for (int i = 0; i < m_items.size(); i++)
         {
-            m_items[i].m_ID =  IDS++;
+            m_items[i].SetID(IDS++);
 
-            if (m_items[i].m_type == MF_SEPARATOR)
+            if (m_items[i].GetType() == MF_SEPARATOR)
             {
-                AppendMenu(m_hMenu, MF_SEPARATOR, m_items[i].m_ID, NULL);
+                AppendMenu(m_hMenu, MF_SEPARATOR, m_items[i].GetID(), NULL);
             }
             else
             {
-                AppendMenu(m_hMenu, m_items[i].m_type, m_items[i].m_ID, m_items[i].m_label.c_str());
+                AppendMenu(m_hMenu, m_items[i].GetType(), m_items[i].GetID(), m_items[i].GetLabel().c_str());
             }
         }
 
@@ -132,6 +137,8 @@ private:
     }
 
 public:
+    virtual CtrlType GetType() { return m_type; };
+
     virtual void OnInitControl(UINT& IDS)
     {
         if (CreateMenuContext(IDS))
@@ -139,7 +146,6 @@ public:
 
         }
     }
-    virtual CtrlType GetType() { return m_type; };
 
     virtual void Event(Window* window, WORD _id, WORD _event)
     {
@@ -163,7 +169,7 @@ public:
     }
 
 public:
-    void AddItem(MenuItem item)
+    void AddItem(MenuItemBase item)
     {
         m_items.push_back(item);
     }
@@ -178,6 +184,159 @@ public:
     }
 
     friend class Window;
+};
+
+//===================================================================================
+//⮟⮟ Lớp MenuBarContext : Control quản lý MenuBarContext                            
+//===================================================================================
+
+class MenuBarItem
+{
+protected:
+
+    HMENU                  m_hMenu;
+    string                 m_text;
+
+    vector<MenuItemBase>   m_items;
+
+public:
+    MenuBarItem(string lab = "") : m_text(lab)
+    {
+
+    }
+
+private:
+
+    bool CreateMenuBarItem(UINT& IDS)
+    {
+        m_hMenu  = CreateMenu();
+        for (int i = 0; i < m_items.size(); i++)
+        {
+            m_items[i].SetID(IDS++);
+
+            if (m_items[i].GetType() == MF_SEPARATOR)
+            {
+                AppendMenu(m_hMenu, MF_SEPARATOR, m_items[i].GetID(), NULL);
+            }
+            else
+            {
+                AppendMenu(m_hMenu, m_items[i].GetType(), m_items[i].GetID(), m_items[i].GetLabel().c_str());
+            }
+        }
+
+
+        return true;
+    }
+
+public:
+
+    void AddItem(MenuItemBase item)
+    {
+        m_items.push_back(item);
+    }
+
+    void SetText(string txt)
+    {
+        m_text = txt;
+    }
+
+    bool ContainID(INT ID)
+    {
+        for (int i = 0; i < m_items.size(); i++)
+        {
+            if (m_items[i].m_ID == ID) return true;
+        }
+        return false;
+    }
+
+    bool CallEvent(Window* win, Control* ctrl, INT ID)
+    {
+        for (int i = 0; i < m_items.size(); i++)
+        {
+            if (m_items[i].m_ID == ID)
+            {
+                m_items[i].m_EventFun(win, ctrl);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    friend class MenuBar;
+};
+
+
+
+class MenuBar : public Control
+{
+public:
+    HMENU               m_hMenuBar;
+    vector<MenuBarItem> m_items;
+
+public:
+    MenuBar() : Control(CtrlType::MENUBAR)
+    {
+
+    }
+
+protected:
+
+    bool CreateMenuBar(UINT& IDS)
+    {
+        m_hMenuBar = CreateMenu();
+
+        for (int i = 0; i < m_items.size(); i++) 
+        {
+            if (m_items[i].CreateMenuBarItem(IDS))
+            {
+                // TODO : Created menubar ok
+                AppendMenu(m_hMenuBar, MF_POPUP, (UINT_PTR)m_items[i].m_hMenu, m_items[i].m_text.c_str());
+                SetMenu(m_hwndPar, m_hMenuBar);
+            }
+            else
+            {
+                cout << "[X]  Create Menubar failed ! " << endl;
+            }
+        }
+        return true;
+    }
+
+public:
+    virtual CtrlType GetType() { return m_type; };
+
+    virtual void OnInitControl(UINT& IDS)
+    {
+        if (CreateMenuBar(IDS))
+        {
+
+        }
+    }
+
+public:
+
+    void AddItem(MenuBarItem item)
+    {
+        m_items.push_back(item);
+    }
+
+    virtual void Event(Window* window, WORD _id, WORD _event)
+    {
+        for (int i = 0; i < m_items.size(); i++)
+        {
+            if (m_items[i].CallEvent(window, this, _id))
+                return ;
+        }
+    }
+
+    bool ContainID(INT ID)
+    {
+        for (int i = 0; i < m_items.size(); i++)
+        {
+            if (m_items[i].ContainID(ID)) 
+                return true;
+        }
+        return false;
+    }
 };
 
 
@@ -231,15 +390,6 @@ public:
                                     (HMENU)m_ID,                                            // menu.
                                     (HINSTANCE)GetWindowLongPtr(m_hwndPar, GWLP_HINSTANCE),
                                     NULL);
-
-        HWND hnd = (HWND)CreateWindowEx(0 , WC_TABCONTROL, "",                                   // button text       
-                                      WS_CHILD | WS_VISIBLE ,                                     // setting           
-                                      0, 0,                                         // x, y position     
-                                      500, 50,                                      // width , heigt size
-                                      m_hwndPar,                                                  // parent control    
-                                      (HMENU)m_ID,                                                // menuid            
-                                      (HINSTANCE)GetWindowLongPtr(m_hwndPar, GWLP_HINSTANCE),     // Parent window     
-                                      NULL);
         if (!m_hwnd)  // Hoàn trả nếu nó khởi tạo không thành công
         {
             m_ID = 0;
