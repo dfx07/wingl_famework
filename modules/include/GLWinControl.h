@@ -387,7 +387,7 @@ public:
                                     m_width,                                                // Button width
                                     m_height,                                               // Button height
                                     m_hwndPar,                                              // Parent window
-                                    (HMENU)m_ID,                                            // menu.
+                                    (HMENU)(UINT_PTR)m_ID,                                  // menu.
                                     (HINSTANCE)GetWindowLongPtr(m_hwndPar, GWLP_HINSTANCE),
                                     NULL);
         if (!m_hwnd)  // Hoàn trả nếu nó khởi tạo không thành công
