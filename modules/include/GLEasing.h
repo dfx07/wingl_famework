@@ -20,6 +20,9 @@
 #define EASING_STANDTIME_START  0.f
 #define EASING_STANDTIME_END    1.f
 
+#define S2MS(s)         (s  * 1000.f)
+#define MS2S(ms)        (ms / 1000.f)
+
 /*
 Easing functions : specify the rate of change of a parameter over time.             
 
@@ -54,6 +57,7 @@ enum class EaseType
     Quint  ,
     Elastic,
     Quart  ,
+    Bounce ,
 };
 //==================================================================================
 //⮟⮟ Hàm bổ trợ                                                                    
@@ -193,6 +197,37 @@ static float EaseInOutQuart(float t)
     return t < 0.5 ? 8 * t * t * t * t : 1 - std::powf(-2 * t + 2, 4) / 2;
 }
 
+//==================================================================================
+//⮟⮟ Triển khai hàm  EASING Bounce //t : 0->1                                       
+//==================================================================================
+
+static float EaseOutBounce(float t)
+{
+    const float  n1 = 7.5625f;
+    const float  d1 = 2.75f;
+
+    if (t < 1 / d1) {
+        return n1 * t * t;
+    } else if (t < 2.f / d1) {
+        return n1 * (t -= 1.5f / d1) * t + 0.75f;
+    } else if (t < 2.5f / d1) {
+        return n1 * (t -= 2.25f / d1) * t + 0.9375f;
+    } else {
+        return n1 * (t -= 2.625f / d1) * t + 0.984375f;
+    }
+}
+
+static float EaseInBounce(float t)
+{
+    return 1 - EaseOutBounce(1 - t);
+}
+
+static float EaseInOutBounce(float t)
+{
+    return t < 0.5f
+        ? (1 - EaseOutBounce(1 - 2 * t)) / 2
+        : (1 + EaseOutBounce(2 * t - 1)) / 2;
+}
 
 // Return : Giá trị trong khoảng [vfrom -> vto] tại thời điểm t
 static float CallEasingBack(EaseMode  mode      ,// Chế độ
@@ -203,7 +238,7 @@ static float CallEasingBack(EaseMode  mode      ,// Chế độ
 {
     if (t >= duration) return vto;
 
-    float t1   = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+    float t1  = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
 
     float vt1 = 0.f;
     if (mode == EaseMode::Out)
@@ -222,5 +257,352 @@ static float CallEasingBack(EaseMode  mode      ,// Chế độ
     float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, vfrom, vto);
     return value;
 }
+
+// Return : Giá trị trong khoảng [vfrom -> vto] tại thời điểm t
+static float CallEasingQuint(EaseMode  mode      ,// Chế độ
+                               float     t         ,// Thời điểm t từ lúc tính
+                               float     vfrom     ,// Giá trị bắt đầu
+                               float     vto       ,// Giá trị kết thúc
+                               float     duration)  // Khoảng thời gian diễn ra
+{
+    if (t >= duration) return vto;
+
+    float t1  = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+
+    float vt1 = 0.f;
+    if (mode == EaseMode::Out)
+    {
+        vt1 = EaseOutQuint(t1);
+    }
+    else if (mode == EaseMode::InOut)
+    {
+        vt1 = EaseInOutQuint(t1);
+    }
+    else
+    {
+        vt1 = EaseInQuint(t1);
+    }
+
+    float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, vfrom, vto);
+    return value;
+}
+
+// Return : Giá trị trong khoảng [vfrom -> vto] tại thời điểm t
+static float CallEasingElastic(EaseMode  mode      ,// Chế độ
+                               float     t         ,// Thời điểm t từ lúc tính
+                               float     vfrom     ,// Giá trị bắt đầu
+                               float     vto       ,// Giá trị kết thúc
+                               float     duration)  // Khoảng thời gian diễn ra
+{
+    if (t >= duration) return vto;
+
+    float t1  = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+
+    float vt1 = 0.f;
+    if (mode == EaseMode::Out)
+    {
+        vt1 = EaseOutElastic(t1);
+    }
+    else if (mode == EaseMode::InOut)
+    {
+        vt1 = EaseInOutElastic(t1);
+    }
+    else
+    {
+        vt1 = EaseInElastic(t1);
+    }
+
+    float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, vfrom, vto);
+    return value;
+}
+
+
+// Return : Giá trị trong khoảng [vfrom -> vto] tại thời điểm t
+static float CallEasingBounce(EaseMode  mode      ,// Chế độ
+                              float     t         ,// Thời điểm t từ lúc tính
+                              float     vfrom     ,// Giá trị bắt đầu
+                              float     vto       ,// Giá trị kết thúc
+                              float     duration)  // Khoảng thời gian diễn ra
+{
+    if (t >= duration) return vto;
+
+    float t1  = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+
+    float vt1 = 0.f;
+    if (mode == EaseMode::Out)
+    {
+        vt1 = EaseOutBounce(t1);
+    }
+    else if (mode == EaseMode::InOut)
+    {
+        vt1 = EaseInOutBounce(t1);
+    }
+    else
+    {
+        vt1 = EaseInBounce(t1);
+    }
+
+    float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, vfrom, vto);
+    return value;
+}
+
+//===================================================================================
+// Class EasingBase : Lớp cơ sở các hiệu ứng Easing liên quan                        
+//===================================================================================
+class EasingBase
+{
+protected:
+    EaseType            type;           // Type easing
+    EaseMode            mode;           // Mode easing
+
+    float               from;           // Start value
+    float               to  ;           // End value
+
+    float               duration;       // Time            [Second     ]
+    float               cumulativeTime; // Cumulative time [Millisecond]
+
+    bool                pause;          // State
+
+public:
+    EasingBase()
+    {
+        mode     = EaseMode::In;
+        duration = 0.f         ;
+        pause    = true;
+
+        this->Reset();
+    }
+
+    EasingBase(EaseMode _mode, float _from, float _to, float _duration)
+    {
+        this->Setup(_mode, _from, _to, _duration);
+    }
+
+public:
+    virtual EaseType GetType() = 0;
+    virtual void Reset()   { cumulativeTime = 0.f; }
+    virtual void Start()   { this->Reset(); pause = false;}
+    virtual void Pause()   { pause = true ; }
+    virtual void Continue(){ pause = false; }
+    virtual bool IsActive(){ return !pause; }
+    virtual void Setup(EaseMode _mode, float _from, float _to, float _duration)
+    {
+        pause    = true ;
+        mode     = _mode;
+        from     = _from;
+        to       = _to  ;
+        duration = S2MS(_duration);
+
+        this->Reset();
+    }
+
+    //==================================================================================
+    // Thực hiện tính toán giá trị animation easing với đầu vào là thời điểm t          
+    // t : Giá trị đầu vào tính theo millisecond
+    //==================================================================================
+    virtual float Excute(float t)
+    {
+        if (pause) return from;
+
+        float value = to;
+
+        if (cumulativeTime <= duration)
+        {
+            if (mode == EaseMode::Out)
+            {
+                value = this->EaseOut(cumulativeTime);
+            }
+            else if (mode == EaseMode::InOut)
+            {
+                value = this->EaseInOut(cumulativeTime);
+            }
+            else
+            {
+                value = this->EaseIn(cumulativeTime);
+            }
+            cumulativeTime += t;
+        }
+        else
+        {
+            pause = true;
+        }
+
+        return value; // Dest value
+    }
+protected:
+    virtual float EaseIn(float t)    = 0;
+    virtual float EaseOut(float t)   = 0;
+    virtual float EaseInOut(float t) = 0;
+};
+
+class EasingBack :public EasingBase
+{
+public:
+    virtual EaseType GetType() { return EaseType::Back; }
+
+private:
+    virtual float EaseIn(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInBack(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseOutBack(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseInOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInOutBack(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+};
+
+class EasingQuint :public EasingBase
+{
+public:
+    virtual EaseType GetType() { return EaseType::Quint; }
+
+private:
+    virtual float EaseIn(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInQuint(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseOutQuint(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseInOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInOutQuint(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+};
+
+class EasingElastic :public EasingBase
+{
+public:
+    virtual EaseType GetType() { return EaseType::Elastic; }
+
+private:
+    virtual float EaseIn(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInElastic(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseOutElastic(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseInOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInOutElastic(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+};
+
+class EasingQuart :public EasingBase
+{
+public:
+    virtual EaseType GetType() { return EaseType::Quart; }
+
+private:
+    virtual float EaseIn(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInQuart(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseOutQuart(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseInOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInOutQuart(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+};
+
+class EasingBounce :public EasingBase
+{
+public:
+    virtual EaseType GetType() { return EaseType::Bounce; }
+
+private:
+    virtual float EaseIn(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInBounce(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseOutBounce(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+
+    virtual float EaseInOut(float t)
+    {
+        float t1    = EasingHardMap(t, 0.f, duration, EASING_STANDTIME_START, EASING_STANDTIME_END);
+        float vt1   = EaseInOutBounce(t1);
+        float value = EasingSoftMap(vt1, EASING_STANDTIME_START, EASING_STANDTIME_END, from, to);
+
+        return value;
+    }
+};
 
 #endif // !GLEASING_H

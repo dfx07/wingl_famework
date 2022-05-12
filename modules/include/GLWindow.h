@@ -53,6 +53,14 @@ typedef duration<double, std::milli>        Tduration;
 class GLWindow;
 
 
+enum class FontWeight
+{
+    Normal,
+    Bold  ,
+    Thin  ,
+    Light ,
+};
+
 struct WndProp
 {
     bool                m_bFullScreen;
@@ -126,19 +134,26 @@ private:
     short                  m_zDeltaScroll;
 
 private:
+    // Window property
     std::string            m_title;
     int                    m_x;
     int                    m_y;
     int                    m_width;     // The drawable width
     int                    m_height;    // The drawable height
+
+    // State information
     bool                   m_bShow;
 
-    double                 m_deltime;
-
+    // Time information
+    double                 m_timeElapsed;
     TimePoint              m_last_time;
     TimePoint              m_last_frame;
     int                    m_fps;
 
+    // Font information
+    const char*            m_fontName;
+    unsigned int           m_fontSize;
+    FontWeight             m_fontWeight;
 private:
     void(*m_funOnDraw)         (Window* win) = NULL;
     void(*m_funOnCreated)      (Window* win) = NULL;
@@ -279,9 +294,58 @@ private:
     {
         m_keyboard[key] = status;
     }
-//==================================================================================
-//⮟⮟ Triển khai chính khởi tạo và xử lý control                                    
-//==================================================================================
+//======================================================================================
+//⮟⮟ Triển khai window win32                                                           
+//======================================================================================
+
+private:
+    static bool CALLBACK SetChildFont(HWND hwnd, LPARAM font)
+    {
+        HFONT hFont = (HFONT)SendMessage(hwnd, WM_GETFONT, NULL, NULL);
+        //HFONT defhFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        if (!hFont)
+        {
+            SendMessage(hwnd, WM_SETFONT, font, true);
+        }
+        return TRUE;
+    }
+    //==================================================================================
+    // Cập nhật thông font cho window                                                   
+    //==================================================================================
+    void UpdateFont()
+    {
+        if (!m_hWnd || !m_fontName) return;
+
+        int iFontWeight = FW_NORMAL;
+        switch (m_fontWeight)
+        {
+            case FontWeight::Bold : iFontWeight = FW_BOLD ; break;
+            case FontWeight::Thin : iFontWeight = FW_THIN ; break;
+            case FontWeight::Light: iFontWeight = FW_LIGHT; break;
+            default:
+                break;
+        }
+        HFONT hFont = NULL;
+        hFont = CreateFont( m_fontSize, 0, 0, 0, iFontWeight, 0,
+                           0, 0, 0, 0, 0, 0, 0, m_fontName);
+
+        SendMessage(m_hWnd, WM_SETFONT, (WPARAM)hFont, FALSE);
+
+        EnumChildWindows(m_hWnd, (WNDENUMPROC)SetChildFont, (LPARAM)hFont);
+    }
+
+public:
+    void SetFont(const char* fontName, const unsigned int fontSize, const FontWeight fontWeight = FontWeight::Normal)
+    {
+        m_fontName   = fontName;
+        m_fontSize   = fontSize;
+        m_fontWeight = fontWeight;
+
+    }
+
+//======================================================================================
+//⮟⮟ Triển khai chính khởi tạo và xử lý control                                        
+//======================================================================================
 private:
     //==================================================================================
     // Khởi tạo toàn bộ control đã được thêm                                            
@@ -343,9 +407,9 @@ private:
         return NULL;
     }
 
-//==================================================================================
-//⮟⮟ Triển khai chính tạo và xử lý ngữ cảnh window  - important                    
-//==================================================================================
+//======================================================================================
+//⮟⮟ Triển khai chính tạo và xử lý ngữ cảnh window  - important                        
+//======================================================================================
 private:
 
     //==================================================================================
@@ -373,8 +437,8 @@ private:
     }
 
     //==================================================================================
-    // Khởi tạo ngữ cảnh OpenGL (OpenGL context)                                         
-    // bOpenGLex : sử dụng OpenGL mở rộng                                                
+    // Khởi tạo ngữ cảnh OpenGL (OpenGL context)                                        
+    // bOpenGLex : sử dụng OpenGL mở rộng                                               
     //==================================================================================
     bool CreateOpenGLContext(bool bOpenGLEx = true)
     {
@@ -499,7 +563,7 @@ private:
         this->CreateGDIplus();
 
         // Kích thức thực tế của vùng có thể vẽ
-        RECT wr = { 0, 0, m_width, m_height };            // set the size, but not the position
+        RECT wr = { 0, 0, m_width, m_height };     // set the size, but not the position
         AdjustWindowRect(&wr, m_pProp.m_dwStyle, FALSE);// adjust the size
 
         m_hWnd = CreateWindowEx(             //
@@ -555,15 +619,20 @@ private:
         // Initialization control
         this->OnInitControl();
 
+        // Update font control after initialization control
+        this->UpdateFont();
+
         return true;
     }
 
-//==================================================================================
-//⮟⮟ Triển khai cập nhật trạng thái của window
-//==================================================================================
+//=======================================================================================
+//⮟⮟ Triển khai cập nhật trạng thái của window                                          
+//=======================================================================================
 private:
-
-    void      PushWindowStatus()
+    //===================================================================================
+    // Lưu giữ trạng thái thông tin của window                                           
+    //===================================================================================
+    void PushWindowStatus()
     {
         WndStatus status;
         status.m_title  = m_title;
@@ -575,6 +644,10 @@ private:
 
         m_StatusStack.push(status);
     }
+
+    //===================================================================================
+    // Lấy lại trạng thái đã được lưu dữ trước đó                                        
+    //===================================================================================
     WndStatus PopWindowStatus()
     {
         WndStatus status;
@@ -585,19 +658,28 @@ private:
         }
         return status;
     }
-    void      UpdateTime     ()
+
+    //===================================================================================
+    // Cập nhật trạng thái thời gian mỗi khi một frame trôi qua                          
+    //===================================================================================
+    void UpdateTime()
     {
-        //auto current_time = high_resolution_clock::now();
-        //std::chrono::duration<double> elapsed = current_time - m_last_time;
-        //m_deltime = elapsed.count();
-        //m_last_time = current_time;
+        TimePoint current_time = high_resolution_clock::now();
+        Tduration elapsed = current_time - m_last_time;
+        m_timeElapsed  = elapsed.count();
+        m_last_time    = current_time;
     }
-    void      UpdateTitle(string strTitle)
+
+    void UpdateTitle(string strTitle)
     {
         if (!m_hWnd) return;
         SetWindowText(m_hWnd, strTitle.c_str());
     }
-    void      UpdateState(bool bShow = true)
+
+    //===================================================================================
+    // Cập nhật trạng thái hiển thị                                                      
+    //===================================================================================
+    void UpdateState(bool bShow = true)
     {
         if (!m_hWnd) return;
 
@@ -610,7 +692,11 @@ private:
             ShowWindow(this->m_hWnd, SW_HIDE);
         }
     }
-    void      UpdateHint()
+
+    //===================================================================================
+    // Cập nhật thông tin stype của window                                               
+    //===================================================================================
+    void UpdateHint()
     {
         if (m_pProp.m_bFullScreen)
         {
@@ -669,6 +755,7 @@ public:
         this->m_y     = ypos;
         this->m_width = width;
         this->m_height= height;
+        ResetTimer();
     }
 
     Window(const Window& win)
@@ -678,6 +765,13 @@ public:
         this->m_width   = win.m_width;
         this->m_height  = win.m_height;
         this->m_pProp   = win.m_pProp;
+        ResetTimer();
+    }
+
+    void ResetTimer()
+    {
+        this->m_timeElapsed = 0;
+        this->m_last_time = high_resolution_clock::now();
     }
 
     void SetupAdvanced(WndProp prop)
@@ -687,7 +781,7 @@ public:
 
     void UpdateStyleWindow()
     {
-        m_pProp.m_dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;    // Window Extended Style
+        m_pProp.m_dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;     // Window Extended Style
         m_pProp.m_dwStyle   = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN;  // Windows Style
         //@@ WS_CLIPCHILDREN: Control của window sẽ không được vẽ khi SwapBuffer
 
@@ -837,6 +931,14 @@ public:
     bool GetMouseButtonStatus(int btn)
     {
         return m_mouse[btn];
+    }
+
+    //==================================================================================
+    // Lấy thời gian trôi qua từ frame trước sang frame hiện tại                        
+    //==================================================================================
+    double GetTimeElapsed()
+    {
+        return m_timeElapsed;
     }
 
     //==================================================================================
