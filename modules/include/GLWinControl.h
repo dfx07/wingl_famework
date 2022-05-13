@@ -20,6 +20,7 @@ enum CtrlType
     BUTTON     ,
     MENUCONTEXT,
     MENUBAR,
+    COMBOBOX,
 };
 
 //===================================================================================
@@ -414,4 +415,304 @@ public:
     }
 
     virtual CtrlType GetType() { return m_type; };
+};
+
+
+//===================================================================================
+//⮟⮟ Lớp Combobox : Control quản lý giao diện và sự kiện Combobox                   
+//===================================================================================
+
+#define WIDTH_CBB_DEF   100
+#define HEIGHT_CBB_DEF  50
+
+
+// Lớp này dùng để chứa thông tin của item
+// nếu muốn lưu dữ liệu thì kế thừa
+class cbb_value
+{
+    
+};
+
+struct CBB_ITEM
+{
+
+    string      text;
+    cbb_value*  value;
+};
+
+class Comboxbox : public Control
+{
+private:
+    int         m_x     ;
+    int         m_y     ;
+    UINT        m_width ;
+    UINT        m_height;
+    bool        m_editText;
+
+    int              selected;
+    vector<CBB_ITEM> items;
+
+
+    void       (*m_EventSelectedChangedFun)(Window* window, Comboxbox* cbb) =NULL;
+public:
+    Comboxbox(int _x = 0, int _y = 0, int _width  = WIDTH_CBB_DEF,
+              int _height = HEIGHT_CBB_DEF ) :Control(CtrlType::COMBOBOX)
+    {
+        m_x         = _x;
+        m_y         = _y;
+        m_width     = _width;
+        m_height    = _height;
+        m_editText  =  false;
+    }
+
+    ~Comboxbox()
+    {
+        for (int i = 0; i < items.size(); i++)
+        {
+            delete items[i].value;
+        }
+    }
+private:
+
+    int FindIndex(string text)
+    {
+        for (int i = 0; i < items.size(); i++)
+        {
+            if (items[i].text == text)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void UpdateItems()
+    {
+        if (!m_hwnd) return;
+
+        SendMessage(m_hwnd, CB_RESETCONTENT, (WPARAM)0, (LPARAM)0);
+
+        for (int i = 0; i < items.size(); i++)
+        {
+            SendMessage(m_hwnd, CB_ADDSTRING, i, (LPARAM)items[i].text.c_str());
+        }
+
+        //SetWindowPos(NULL, NULL, m_x, m_y, m_width, m_height,SWP_NOSIZE|SWP_NOZORDER);
+
+        UpdateSelect();
+    }
+
+    void UpdateSelect()
+    {
+        if (!m_hwnd) return;
+        SendMessage(m_hwnd, CB_SETCURSEL, (WPARAM)selected, (LPARAM)0);
+        selected = GetSelectItem();
+    }
+
+    //===================================================================================
+    // Lấy ra chỉ số được select  : nó sẽ được lưu trữ  vào biến seleted                 
+    //===================================================================================
+    int GetSelectItem()
+    {
+        if (!m_hwnd)
+        {
+            selected = -1;
+        }
+        else
+        {
+            selected = (int)SendMessage(m_hwnd, CB_GETCURSEL, NULL, NULL);
+        }
+        return selected;
+    }
+
+public:
+
+    void SetPosition(int _x, int _y)
+    {
+        m_x  = _x;
+        m_y  = _y;
+    }
+
+    void SetSize(int width, int height)
+    {
+        m_width  = width;
+        m_height = height;
+    }
+
+    void SetEventSelectedChange(void (*fun)(Window*, Comboxbox* ))
+    {
+        m_EventSelectedChangedFun = fun;
+    }
+
+    void SetSelect(int index)
+    {
+        selected = index;
+    }
+
+    void TextEdit(bool bEn)
+    {
+        m_editText = bEn;
+    }
+
+    void SetMinItemVisiable(int iMinVisible)
+    {
+        if (!m_hwnd) return;
+        SendMessage((m_hwnd), CB_SETMINVISIBLE, (WPARAM) iMinVisible, 0);
+    }
+
+    void AddItem(string text, cbb_value* value = NULL)
+    {
+        CBB_ITEM    item;
+        item.text  = text;
+        item.value = value;
+
+        items.push_back(item);
+    }
+
+    //===================================================================================
+    // Xóa một item được chỉ định bằng text : tất cả các item có text sẽ bị xóa          
+    //===================================================================================
+    void RemoveItem(string text)
+    {
+        for (auto it = items.begin(); it!= items.end(); /*it++*/)
+        {
+            if (it->text == text)
+            {
+                delete it->value;
+                it = items.erase(it);
+            }
+            else ++it;
+        }
+
+        UpdateItems();
+    }
+
+    //===================================================================================
+    // Xóa một item được chỉ định bằng index : tất cả các item có text sẽ bị xóa         
+    //===================================================================================
+    void RemoveItem(int index)
+    {
+        if (index < 0 || index >= items.size())
+        {
+            return;
+        }
+
+        delete items[index].value;
+        items.erase(items.begin() + index);
+
+        UpdateItems();
+    }
+
+    //===================================================================================
+    // Xóa toàn bộ item đang co trong combobxo                                           
+    //===================================================================================
+    void RemoveAllItem()
+    {
+        for (int i = 0; i < items.size(); i++)
+        {
+            delete items[i].value;
+        }
+        items.clear();
+
+        UpdateItems();
+    }
+
+    //===================================================================================
+    // Xóa toàn bộ item đang co trong combobxo                                           
+    //===================================================================================
+    void SelectItem(int sel)
+    {
+        if (sel < 0 || sel >= items.size())
+        {
+            sel = -1;
+        }
+        UpdateSelect();
+    }
+
+    //===================================================================================
+    // Lấy text của item dựa vào index                                                   
+    //===================================================================================
+    string GetItemText(int index)
+    {
+        if (index < 0 || index >= items.size())
+        {
+            return "";
+        }
+
+        return items[index].text;
+    }
+
+    //===================================================================================
+    // Lấy giá trị của item                                                              
+    //===================================================================================
+    cbb_value* GetItemData(int index)
+    {
+        if (index < 0 || index >= items.size())
+        {
+            return NULL;
+        }
+
+        return items[index].value;
+    }
+
+    //===================================================================================
+    // Lấy giá trị text của item selected                                                
+    //===================================================================================
+    string GetSelectText()
+    {
+        GetSelectItem();
+        if (selected < 0 || selected >= items.size())
+        {
+            return "";
+        }
+
+        return items[selected].text;
+    }
+
+    //===================================================================================
+    // Lấy chỉ số của item selected                                                      
+    //===================================================================================
+    int GetSelectIndex()
+    {
+        GetSelectItem();
+        return selected;
+    }
+
+    virtual CtrlType GetType() { return m_type; }
+
+public:
+    void OnInitControl(UINT& IDS)
+    {
+        m_ID   = IDS++;
+
+        int style = WS_CHILD | WS_VISIBLE;
+
+        if (m_editText) style |= CBS_DROPDOWN;
+        else            style |= CBS_DROPDOWNLIST;
+
+        m_hwnd = CreateWindow("Combobox", NULL, style,               //
+                               m_x , m_y ,                           // x, y
+                               m_width, m_height*(int)items.size(),  // chiều rộng / chiều cao
+                               m_hwndPar,                            // Handle cha
+                               (HMENU)(UINT_PTR)m_ID, NULL, NULL);
+
+        // Create combobox failed !
+        if (!m_hwnd)
+        {
+            m_ID = 0;
+            IDS--;
+        }
+
+        UpdateItems();
+    }
+
+
+    virtual void Event(Window* window, WORD _id, WORD _event)
+    {
+        if (_event == CBN_SELCHANGE)
+        {
+            GetSelectItem();
+            if(m_EventSelectedChangedFun)  m_EventSelectedChangedFun(window, this);
+        }
+    }
 };

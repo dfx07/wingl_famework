@@ -190,10 +190,11 @@ public:
             this->m_funOnCreated(this);
         }
     }
-    virtual void OnCommand()
+    virtual void OnCommand(int type)
     {
 
     }
+
     virtual void OnKeyBoard()
     {
         if (m_funOnKeyboard)
