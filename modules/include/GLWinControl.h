@@ -440,22 +440,23 @@ struct CBB_ITEM
     cbb_value*  value;
 };
 
-class Comboxbox : public Control
+class Combobox : public Control
 {
 private:
-    int         m_x     ;
-    int         m_y     ;
-    UINT        m_width ;
-    UINT        m_height;
-    bool        m_editText;
+    int              m_x     ;
+    int              m_y     ;
+    UINT             m_width ;
+    UINT             m_height;
+    bool             m_editText;
 
     int              selected;
-    vector<CBB_ITEM> items;
+    vector<CBB_ITEM> items   ;
 
 
-    void       (*m_EventSelectedChangedFun)(Window* window, Comboxbox* cbb) =NULL;
+    void  (*m_EventSelectedChangedFun)(Window*, Combobox*) =NULL;
+
 public:
-    Comboxbox(int _x = 0, int _y = 0, int _width  = WIDTH_CBB_DEF,
+    Combobox(int _x = 0, int _y = 0, int _width  = WIDTH_CBB_DEF,
               int _height = HEIGHT_CBB_DEF ) :Control(CtrlType::COMBOBOX)
     {
         m_x         = _x;
@@ -465,7 +466,7 @@ public:
         m_editText  =  false;
     }
 
-    ~Comboxbox()
+    ~Combobox()
     {
         for (int i = 0; i < items.size(); i++)
         {
@@ -539,7 +540,7 @@ public:
         m_height = height;
     }
 
-    void SetEventSelectedChange(void (*fun)(Window*, Comboxbox* ))
+    void SetEventSelectedChange(void (*fun)(Window*, Combobox* ))
     {
         m_EventSelectedChangedFun = fun;
     }
