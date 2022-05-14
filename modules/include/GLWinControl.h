@@ -425,19 +425,10 @@ public:
 #define WIDTH_CBB_DEF   100
 #define HEIGHT_CBB_DEF  50
 
-
-// Lớp này dùng để chứa thông tin của item
-// nếu muốn lưu dữ liệu thì kế thừa
-class cbb_value
-{
-    
-};
-
 struct CBB_ITEM
 {
-
-    string      text;
-    cbb_value*  value;
+    string      text; // dữ liệu text hiển thị trên cbb
+    void*       data; // dữ liêu của item tự định nghĩa và kiểm soát
 };
 
 class Combobox : public Control
@@ -457,7 +448,7 @@ private:
 
 public:
     Combobox(int _x = 0, int _y = 0, int _width  = WIDTH_CBB_DEF,
-              int _height = HEIGHT_CBB_DEF ) :Control(CtrlType::COMBOBOX)
+             int _height = HEIGHT_CBB_DEF ) :Control(CtrlType::COMBOBOX)
     {
         m_x         = _x;
         m_y         = _y;
@@ -470,22 +461,10 @@ public:
     {
         for (int i = 0; i < items.size(); i++)
         {
-            delete items[i].value;
+            delete items[i].data;
         }
     }
 private:
-
-    int FindIndex(string text)
-    {
-        for (int i = 0; i < items.size(); i++)
-        {
-            if (items[i].text == text)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
 
     void UpdateItems()
     {
@@ -507,13 +486,13 @@ private:
     {
         if (!m_hwnd) return;
         SendMessage(m_hwnd, CB_SETCURSEL, (WPARAM)selected, (LPARAM)0);
-        selected = GetSelectItem();
+        selected = GetSelectIndexItem();
     }
 
     //===================================================================================
     // Lấy ra chỉ số được select  : nó sẽ được lưu trữ  vào biến seleted                 
     //===================================================================================
-    int GetSelectItem()
+    int GetSelectIndexItem()
     {
         if (!m_hwnd)
         {
@@ -561,11 +540,12 @@ public:
         SendMessage((m_hwnd), CB_SETMINVISIBLE, (WPARAM) iMinVisible, 0);
     }
 
-    void AddItem(string text, cbb_value* value = NULL)
+    // Chú ý cần clone và tạo data bằng new 
+    void AddItem(string text, void* data = NULL)
     {
         CBB_ITEM    item;
         item.text  = text;
-        item.value = value;
+        item.data  = data;
 
         items.push_back(item);
     }
@@ -579,7 +559,7 @@ public:
         {
             if (it->text == text)
             {
-                delete it->value;
+                delete it->data;
                 it = items.erase(it);
             }
             else ++it;
@@ -598,7 +578,7 @@ public:
             return;
         }
 
-        delete items[index].value;
+        delete items[index].data;
         items.erase(items.begin() + index);
 
         UpdateItems();
@@ -611,7 +591,7 @@ public:
     {
         for (int i = 0; i < items.size(); i++)
         {
-            delete items[i].value;
+            delete items[i].data;
         }
         items.clear();
 
@@ -646,14 +626,14 @@ public:
     //===================================================================================
     // Lấy giá trị của item                                                              
     //===================================================================================
-    cbb_value* GetItemData(int index)
+    void* GetItemData(int index)
     {
         if (index < 0 || index >= items.size())
         {
             return NULL;
         }
 
-        return items[index].value;
+        return items[index].data;
     }
 
     //===================================================================================
@@ -661,7 +641,7 @@ public:
     //===================================================================================
     string GetSelectText()
     {
-        GetSelectItem();
+        GetSelectIndexItem();
         if (selected < 0 || selected >= items.size())
         {
             return "";
@@ -671,11 +651,26 @@ public:
     }
 
     //===================================================================================
+    // Lấy dữ liệu item đang select                                                      
+    //===================================================================================
+    void* GetSelectData()
+    {
+        GetSelectIndexItem();
+
+        if (selected < 0 || selected >= items.size())
+        {
+            return NULL;
+        }
+
+        return items[selected].data;
+    }
+
+    //===================================================================================
     // Lấy chỉ số của item selected                                                      
     //===================================================================================
     int GetSelectIndex()
     {
-        GetSelectItem();
+        GetSelectIndexItem();
         return selected;
     }
 
@@ -712,7 +707,7 @@ public:
     {
         if (_event == CBN_SELCHANGE)
         {
-            GetSelectItem();
+            GetSelectIndexItem();
             if(m_EventSelectedChangedFun)  m_EventSelectedChangedFun(window, this);
         }
     }

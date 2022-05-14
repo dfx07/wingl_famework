@@ -395,6 +395,10 @@ public:
 
         this->Reset();
     }
+    virtual void SetMode(EaseMode mode)
+    {
+        this->mode = mode;
+    }
 
     //==================================================================================
     // Thực hiện tính toán giá trị animation easing với đầu vào là thời điểm t          
