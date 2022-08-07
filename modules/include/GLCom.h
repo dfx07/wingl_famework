@@ -23,6 +23,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdarg.h> 
+#include <iostream>
+#include <chrono>
+#include <ctime>
 
 using namespace std;
 using namespace Gdiplus;
@@ -604,4 +608,134 @@ STBGLDEF FileStatus DF_ReadContentFile(const char* fpath, string& content)
 
     return FileStatus::OK;
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// Write logger
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class Logger
+{
+    enum { MAX_BUFF = 80 };
+
+private:
+    const char* m_path;
+    FILE*       m_logFile;
+    bool        m_ptime;
+
+private:
+    void WriteTime()
+    {
+        if (!m_logFile) return;
+
+        char buffer[MAX_BUFF];
+        memset(buffer, 0, sizeof(buffer));
+
+        time_t  now = time(NULL);
+        struct tm  tstruct;
+        tstruct = *localtime(&now);
+
+        // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+        // Ex: [2022-08-07 17:37:21]
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %X", &tstruct);
+
+        fprintf(m_logFile, "[%s] ", buffer);
+    }
+
+public:
+    Logger(const char* path = NULL)
+    {
+        this->m_path = path;
+    }
+
+    // Write time to logfile
+    void SetTime(bool put) { m_ptime = put; }
+
+    // Create or clear content log file
+    bool Init()
+    {
+        if (fopen_s(&m_logFile, m_path, "w") && !m_logFile)
+        {
+            return false;
+        }
+
+        // close file
+        fclose(m_logFile);
+        return true;
+    }
+
+    // Put newline
+    void WriteLine()
+    {
+        fopen_s(&m_logFile, m_path, "a");
+        if (!m_logFile) return;
+
+        //Write the newline
+        putc('\n', m_logFile);
+
+        fclose(m_logFile);
+    }
+
+    // Write format string to log file
+    void WriteError(const char* format, ...)
+    {
+        fopen_s(&m_logFile, m_path, "a");
+
+        if (!m_logFile) return;
+
+        // List paramater write file follow format
+        va_list args;
+        va_start(args, format);
+
+        // Write format to file
+        fprintf(m_logFile, "[!]");
+        if (m_ptime) WriteTime();
+        vfprintf(m_logFile, format, args);
+        putc('\n', m_logFile);
+
+        va_end(args);
+        fclose(m_logFile);
+    }
+
+    // Write format string to log file
+    void WriteSuccess(const char* format, ...)
+    {
+        fopen_s(&m_logFile, m_path, "a");
+
+        if (!m_logFile) return;
+
+        // List paramater write file follow format
+        va_list args;
+        va_start(args, format);
+
+        // Write format to file
+        fprintf(m_logFile, "[*]");
+        if (m_ptime) WriteTime();
+        vfprintf(m_logFile, format, args);
+        putc('\n', m_logFile);
+
+        va_end(args);
+        fclose(m_logFile);
+    }
+
+    // Write format string to log file
+    void WriteMisc(const char* format, ...)
+    {
+        fopen_s(&m_logFile, m_path, "a");
+
+        if (!m_logFile) return;
+
+        // List paramater write file follow format
+        va_list args;
+        va_start(args, format);
+
+        // Write format to file
+        fprintf(m_logFile, "[#]");
+        if (m_ptime) WriteTime();
+        vfprintf(m_logFile, format, args);
+        putc('\n', m_logFile);
+
+        va_end(args);
+        fclose(m_logFile);
+    }
+};
+
 #endif // !GLCOM_H

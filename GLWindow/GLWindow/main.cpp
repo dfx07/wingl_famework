@@ -96,6 +96,11 @@ void Create(Window* win)
 
     menubar->AddItem(menubaritem);
 
+    Button* button = new Button();
+    button->SetLabel("Click");
+    button->SetPosition(100, 100);
+
+    win->AddControl(button);
     win->AddControl(menucontext);
     win->AddControl(menubar);
 }

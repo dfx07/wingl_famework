@@ -756,6 +756,12 @@ public:
         this->m_y     = ypos;
         this->m_width = width;
         this->m_height= height;
+
+        // setup default font
+        this->m_fontName   = "Arial";
+        this->m_fontSize   = 12;
+        this->m_fontWeight = FontWeight::Normal;
+
         ResetTimer();
     }
 

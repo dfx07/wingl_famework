@@ -345,9 +345,11 @@ public:
 //⮟⮟ Lớp Button : Control quản lý giao diện và sự kiện Button                       
 //===================================================================================
 
-
 class Button : public Control
 {
+    enum  { WIDTH_DEF  = 80 };
+    enum  { HEIGHT_DEF = 20 };
+
 protected:
     int         m_x     ;
     int         m_y     ;
@@ -359,7 +361,8 @@ protected:
 
     void       (*m_EventFun)(Window* window, Button* btn) =NULL;
 public:
-    Button() : Control(CtrlType::BUTTON), m_width(0), m_height(0)
+    Button() : Control(CtrlType::BUTTON),
+        m_width(WIDTH_DEF), m_height(HEIGHT_DEF)
     {
     }
 
@@ -401,6 +404,8 @@ public:
     virtual void Event(Window* window, WORD _id, WORD _event)
     {
         m_bClicked = true;
+        if (!m_EventFun) return;
+
         m_EventFun(window, this);
     }
 
@@ -422,9 +427,6 @@ public:
 //⮟⮟ Lớp Combobox : Control quản lý giao diện và sự kiện Combobox                   
 //===================================================================================
 
-#define WIDTH_CBB_DEF   100
-#define HEIGHT_CBB_DEF  50
-
 struct CBB_ITEM
 {
     string      text; // dữ liệu text hiển thị trên cbb
@@ -433,6 +435,8 @@ struct CBB_ITEM
 
 class Combobox : public Control
 {
+    enum { WIDTH_DEF  = 100 };
+    enum { HEIGHT_DEF = 50  };
 private:
     int              m_x     ;
     int              m_y     ;
@@ -447,8 +451,8 @@ private:
     void  (*m_EventSelectedChangedFun)(Window*, Combobox*) =NULL;
 
 public:
-    Combobox(int _x = 0, int _y = 0, int _width  = WIDTH_CBB_DEF,
-             int _height = HEIGHT_CBB_DEF ) :Control(CtrlType::COMBOBOX)
+    Combobox(int _x = 0, int _y = 0, int _width  = WIDTH_DEF,
+             int _height = HEIGHT_DEF) :Control(CtrlType::COMBOBOX)
     {
         m_x         = _x;
         m_y         = _y;
