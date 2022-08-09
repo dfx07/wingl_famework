@@ -31,6 +31,7 @@
 using namespace std;
 using namespace Gdiplus;
 using namespace glm;
+using namespace std::chrono;
 
 
 //=============================================================================
@@ -609,9 +610,9 @@ STBGLDEF FileStatus DF_ReadContentFile(const char* fpath, string& content)
     return FileStatus::OK;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// Write logger
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//==================================================================================
+// Logger : write information to file                                               
+//==================================================================================
 class Logger
 {
     enum { MAX_BUFF = 80 };
@@ -737,5 +738,113 @@ public:
         fclose(m_logFile);
     }
 };
+
+
+typedef high_resolution_clock::time_point   time_pointer;
+typedef duration<double, std::milli>        duration_milli_double;
+
+//==================================================================================
+// Timer : Count the elapsed time                                                   
+//==================================================================================
+class Timer
+{
+private:
+    time_pointer   m_start_timer;
+    time_pointer   m_end_timer;
+
+public:
+    Timer()
+    {
+        m_start_timer = high_resolution_clock::time_point();
+        m_end_timer   = high_resolution_clock::time_point();
+    }
+
+    void Reset()
+    {
+        m_start_timer = high_resolution_clock::now();
+    }
+
+    time_pointer GetTime()
+    {
+        return high_resolution_clock::now();
+    }
+
+    double GetTimeMiliSecond()
+    {
+        duration_milli_double dur = high_resolution_clock::now() - m_start_timer;
+        return dur.count();
+    }
+
+    double GetTimeSecond()
+    {
+        double t = GetTimeMiliSecond();
+        return t/1000.0;
+    }
+};
+
+//==================================================================================
+// FPSCounter : Handle fps                                                          
+//==================================================================================
+class FPSCounter
+{
+    enum { RST_FRAME_TIME = -9999 };
+
+private:
+    // fps information propertis
+    unsigned int m_fps;
+    unsigned int m_frames;
+    time_pointer m_last_frame_point;
+
+    // frame elapsed propertis
+    double       m_frame_time;
+    time_pointer m_prev_frame_point;
+
+public:
+
+    FPSCounter() : m_fps(0), m_frame_time(RST_FRAME_TIME),
+        m_frames(0)
+    {}
+
+    void Reset()
+    {
+        m_frame_time = RST_FRAME_TIME;
+        m_fps        = 0;
+        m_last_frame_point = high_resolution_clock::now();
+    }
+
+    void Update()
+    {
+        time_pointer current_frame_point = high_resolution_clock::now();
+        duration_milli_double dur       = current_frame_point - m_last_frame_point;
+        duration_milli_double dur_frame = current_frame_point - m_prev_frame_point;
+
+        // Update frame time every times
+        if (m_frame_time > RST_FRAME_TIME)
+        {
+            m_frame_time = dur_frame.count();
+        }
+        else
+        {
+            m_frame_time = 1.0; // Millisecond
+        }
+
+        ++m_frames;
+
+        // Update the number of frames per second
+        if (dur.count() >= 1000.0)
+        {
+            // No use m_frames counter. Because of duration over 1s
+            m_fps = static_cast<unsigned int>(m_frames*1000.0/dur.count());
+            m_last_frame_point = current_frame_point;
+            m_frames           = 0;
+        }
+
+        m_prev_frame_point = current_frame_point;
+    }
+
+    unsigned int FPS()       { return m_fps;        }
+    double       FrameTime() { return m_frame_time; }
+};
+
 
 #endif // !GLCOM_H

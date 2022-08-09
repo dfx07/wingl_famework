@@ -20,9 +20,9 @@
 #include <chrono>
 
 #include <windows.h>
-#include "GLWinControl.h"
 #include "GLWinDef.h"
 #include "GLCom.h"
+#include "GLWinControl.h"
 
 #include <GL/glew.h>
 #include <GL/wglew.h>
@@ -30,7 +30,6 @@
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"opengl32.lib")
 
-using namespace std::chrono;
 
 #define addAtribute(attribs, name, value)\
 {\
@@ -47,8 +46,7 @@ using namespace std::chrono;
 
 //Không sử dụng Graphics vì nó bị đỏ khi Bug khó chịu @^@
 typedef Gdiplus::Graphics                   WndGDIplus;
-typedef high_resolution_clock::time_point   TimePoint;
-typedef duration<double, std::milli>        Tduration;
+
 
 class GLWindow;
 
@@ -145,10 +143,13 @@ private:
     bool                   m_bShow;
 
     // Time information
-    double                 m_timeElapsed;
-    TimePoint              m_last_time;
-    TimePoint              m_last_frame;
-    int                    m_fps;
+    //double                 m_timeElapsed;
+    //TimePoint              m_last_time;
+    //TimePoint              m_last_frame;
+    //int                    m_fps;
+
+    FPSCounter             m_fpscounter;
+    Timer                  m_update_timer;
 
     // Font information
     const char*            m_fontName;
@@ -255,27 +256,19 @@ public:
 
     virtual void OnDraw()
     {
-        //Xử lý mặc định và hiển thị Fps
-        TimePoint  time = high_resolution_clock::now();
-        Tduration  time_elsp = time - m_last_frame;
+        //Xử lý mặc định và hiển thị Fps - Cập nhật title sau từng giây
+        //if (m_update_timer.GetTimeSecond() >= 1.0f)
+        //{
+        //    m_update_timer.Reset();
 
-        // Cập nhật title sau từng giây
-        if (time_elsp.count() > 1000.f)
-        {
-            string title = this->m_title;
-            title.append(" - " + std::to_string(this->GetWidth()) + "x"
-                + std::to_string(this->GetHeight()));
-            title.append(", FPS: " + std::to_string(m_fps));
-            title.append(" - " + std::string((char*)glGetString(GL_RENDERER)));
+        //    string title = this->m_title;
+        //    title.append(" - " + std::to_string(this->GetWidth()) + "x"
+        //        + std::to_string(this->GetHeight()));
+        //    title.append(", FPS: " + std::to_string(m_fpscounter.FrameTime()));
+        //    title.append(" - " + std::string((char*)glGetString(GL_RENDERER)));
 
-            m_last_frame = time;
-            m_fps = 0;
-            this->UpdateTitle(title);
-        }
-        else
-        {
-            m_fps++;
-        }
+        //    this->UpdateTitle(title);
+        //}
 
         // Thực hiện vẽ custom người dùng
         if (m_funOnDraw)
@@ -283,6 +276,8 @@ public:
             glViewport(0, 0, m_width, m_height);
             this->m_funOnDraw(this);
         }
+
+        cout << m_fpscounter.FrameTime() << endl;
     }
 
 private:
@@ -623,6 +618,9 @@ private:
         // Update font control after initialization control
         this->UpdateFont();
 
+        // Update and setup properties when everything is done
+        this->InitProperties();
+
         return true;
     }
 
@@ -665,10 +663,21 @@ private:
     //===================================================================================
     void UpdateTime()
     {
-        TimePoint current_time = high_resolution_clock::now();
-        Tduration elapsed = current_time - m_last_time;
-        m_timeElapsed  = elapsed.count();
-        m_last_time    = current_time;
+        //TimePoint current_time = high_resolution_clock::now();
+        //Tduration elapsed = current_time - m_last_time;
+        //m_timeElapsed  = elapsed.count();
+        //m_last_time    = current_time;
+
+        m_fpscounter.Update();
+    }
+
+    //===================================================================================
+    // Khởi tạo trạng thái và thông tin thuộc tính khi đã tạo windows xong               
+    //===================================================================================
+    void InitProperties()
+    {
+        m_fpscounter.Reset();
+        m_update_timer.Reset();
     }
 
     void UpdateTitle(string strTitle)
@@ -762,7 +771,7 @@ public:
         this->m_fontSize   = 12;
         this->m_fontWeight = FontWeight::Normal;
 
-        ResetTimer();
+        //ResetTimer();
     }
 
     Window(const Window& win)
@@ -772,14 +781,14 @@ public:
         this->m_width   = win.m_width;
         this->m_height  = win.m_height;
         this->m_pProp   = win.m_pProp;
-        ResetTimer();
+        //ResetTimer();
     }
 
-    void ResetTimer()
-    {
-        this->m_timeElapsed = 0;
-        this->m_last_time = high_resolution_clock::now();
-    }
+    //void ResetTimer()
+    //{
+    //    this->m_timeElapsed = 0;
+    //    this->m_last_time = high_resolution_clock::now();
+    //}
 
     void SetupAdvanced(WndProp prop)
     {
@@ -945,7 +954,8 @@ public:
     //==================================================================================
     double GetTimeElapsed()
     {
-        return m_timeElapsed;
+        //return m_timeElapsed;
+        return m_fpscounter.FrameTime();
     }
 
     //==================================================================================
