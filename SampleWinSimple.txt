@@ -13,14 +13,10 @@ libs:  	glu32.lib;glew32.lib;freetype.lib;ftgl.lib;
 
 
 #include <GLWindow.h>
-#include <GLFont.h>
-#include <GLCamera.h>
-#include <GLRenderer.h>
 
 
 GLCamera2D    cam2d;
-GLFontManager font;
-GLRenderer    render;
+
 
 glm::vec3 pos = { 0, 0, 8 };
 glm::vec3 dir = { 0, 0, 1 };
@@ -32,7 +28,6 @@ void OnCreate(Window* win)
     cam2d.SetUpCamera(pos, dir, up);
     cam2d.UpdateMatrix();
 
-    render.AddLine(vec3(0, 0, 0), vec3(0, 100, 0), GL_RED_COL, GL_RED_COL);
 }
 
 void OnDestroy(Window* win)
@@ -81,11 +76,6 @@ void OnDraw(Window* win)
     glClearColor(1.0, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    render.Clear();
-    render.UseCamera(&cam2d);
-
-    render.UpdateRender();
-    render.Draw();
 }
 
 int main()

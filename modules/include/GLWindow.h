@@ -169,6 +169,7 @@ private:
 
 public:
     HWND GetHwnd()                                          { return m_hWnd; }
+    HDC  GetHDC()                                           { return m_pRender.m_hDc;}
     // Get set don't care
     void SetOnDrawfunc(void(*funOnDraw)(Window*))           { m_funOnDraw = funOnDraw; }
     void SetOnCreatedfunc(void(*funOnCreate)(Window*))      { m_funOnCreated = funOnCreate; }
@@ -264,7 +265,7 @@ public:
         //    string title = this->m_title;
         //    title.append(" - " + std::to_string(this->GetWidth()) + "x"
         //        + std::to_string(this->GetHeight()));
-        //    title.append(", FPS: " + std::to_string(m_fpscounter.FrameTime()));
+        //    title.append(", FPS: " + std::to_string(m_fpscounter.FPS()));
         //    title.append(" - " + std::string((char*)glGetString(GL_RENDERER)));
 
         //    this->UpdateTitle(title);
@@ -273,11 +274,9 @@ public:
         // Thực hiện vẽ custom người dùng
         if (m_funOnDraw)
         {
-            glViewport(0, 0, m_width, m_height);
+            //glViewport(0, 0, m_width, m_height);
             this->m_funOnDraw(this);
         }
-
-        cout << m_fpscounter.FrameTime() << endl;
     }
 
 private:
@@ -591,6 +590,8 @@ private:
             m_width = rect.right - rect.left;
             m_height = rect.bottom - rect.top;
         }
+
+
     }
 
     //==================================================================================
@@ -611,6 +612,9 @@ private:
         this->CreateOpenGLContext(bInitOpenGLEx);
 
         this->OnCreated();
+
+        // Update title after created ok
+        this->UpdateTitle();
 
         // Initialization control
         this->OnInitControl();
@@ -680,10 +684,22 @@ private:
         m_update_timer.Reset();
     }
 
-    void UpdateTitle(string strTitle)
+    void UpdateTitle()
     {
         if (!m_hWnd) return;
-        SetWindowText(m_hWnd, strTitle.c_str());
+
+        string gpu_device = "No Device";
+        if ((char*)glGetString(GL_RENDERER))
+        {
+            gpu_device = (char*)glGetString(GL_RENDERER);
+        }
+
+        char titlebuff[256];
+        sprintf(titlebuff, "%s - %d x %d - %s",
+                            m_title.c_str(),
+                            m_width, m_height,
+                            gpu_device.c_str());
+        SetWindowText(m_hWnd, titlebuff);
     }
 
     //===================================================================================
@@ -842,7 +858,7 @@ public:
     void SetTitle(string title)
     {
         m_title = title;
-        this->UpdateTitle(m_title);
+        this->UpdateTitle();
     }
 
     // Activate openGL context
@@ -952,10 +968,19 @@ public:
     //==================================================================================
     // Lấy thời gian trôi qua từ frame trước sang frame hiện tại                        
     //==================================================================================
-    double GetTimeElapsed()
+    double GetFrameTime()
     {
         //return m_timeElapsed;
         return m_fpscounter.FrameTime();
+    }
+
+    //==================================================================================
+    // Lấy FPS window                                                                   
+    //==================================================================================
+    unsigned int GetFPS()
+    {
+        //return m_timeElapsed;
+        return m_fpscounter.FPS();
     }
 
     //==================================================================================
@@ -1180,6 +1205,7 @@ public:
 
                 glViewport(0, 0, win->m_width, win->m_height);
                 win->OnResize();
+                win->UpdateTitle();
                 win->OnDraw();
                 win->SwapBuffer();
 
@@ -1190,6 +1216,7 @@ public:
                 Window* win = pWinMana->Find(hWnd);
                 if (!win) break;
                 glViewport(0, 0, win->m_width, win->m_height);
+                win->UpdateTitle();
                 return TRUE;
             }
             case WM_MOUSEWHEEL:
