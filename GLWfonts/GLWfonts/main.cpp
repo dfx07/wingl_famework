@@ -5,7 +5,7 @@
 
 GLCamera2D    cam2d;
 
-GLWinFontRender textrender;
+//GLWinFontRender textrender;
 
 glm::vec3 pos = { 0, 0, 8 };
 glm::vec3 dir = { 0, 0, 1 };
@@ -17,8 +17,8 @@ void OnCreate(Window* win)
     cam2d.SetUpCamera(pos, dir, up);
     cam2d.UpdateMatrix();
 
-    textrender.Init(win->GetHDC(), win->GetWidth(), win->GetHeight());
-    textrender.LoadFont("consolas", 18, GLWinFontRender::FontType::Bold);
+    //textrender.Init(win->GetHDC(), win->GetWidth(), win->GetHeight());
+    //textrender.LoadFont("consolas", 18, GLWinFontRender::FontType::Bold);
 }
 
 void OnDestroy(Window* win)
@@ -51,7 +51,7 @@ void OnResize(Window* win)
 {
     cam2d.SetViewSize(win->GetWidth(), win->GetHeight());
     cam2d.UpdateMatrix();
-    textrender.UpdateView(win->GetWidth(), win->GetHeight());
+    //textrender.UpdateView(win->GetWidth(), win->GetHeight());
 }
 
 void OnMouseMove(Window* win)
@@ -70,12 +70,12 @@ void OnDraw(Window* win)
     glClearColor(0.5f, 0.5f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    char fpsStr[80];
-    sprintf(&fpsStr[0], "fps: %d - frametime : %f ms", win->GetFPS(), win->GetFrameTime());
+    //char fpsStr[80];
+    //sprintf(&fpsStr[0], "fps: %d - frametime : %f ms", win->GetFPS(), win->GetFrameTime());
 
-    textrender.Use();
-    textrender.Write(10, 20, fpsStr);
-    textrender.DontUse();
+    //textrender.Use();
+    //textrender.Write(10, 20, fpsStr);
+    //textrender.DontUse();
 
     // Example : Unicode character
     //const wchar_t* wtext = L"thuong☑";
@@ -90,9 +90,11 @@ int main()
 
     WndProp adven;
     adven.m_iAntialiasing = 8;
+    //adven.m_bGDIplus = true;
 
     Window* win = new Window("GLWindow", 500, 100, 900, 580);
     win->SetupAdvanced(adven);
+    win->WriteSystemInfo(true);
 
     win->SetProcessfunc(OnProcess);
     win->SetOnDrawfunc(OnDraw);

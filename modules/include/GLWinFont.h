@@ -19,6 +19,10 @@
  [*] If you not use Unicode , please reduce RANG_BASE_LIST = asscii                 
 ====================================================================================*/
 
+#ifndef GLWINFONT_H
+#define GLWINFONT_H
+
+
 #include <GL/glew.h>
 #include <Windows.h>
 #include <iostream>
@@ -57,6 +61,44 @@ private:
     bool    m_bInitOK;
 
     std::map<short, unsigned int> m_character_map_list;
+
+public:
+    //==================================================================================
+    // Get text bound size (width , height)                                             
+    //==================================================================================
+    void GetSizeText(const char* text, int& width, int& height)
+    {
+        SelectObject(m_hdc, m_hfont);
+        SIZE _size;
+        BOOL rel = GetTextExtentPoint(m_hdc, text, strlen(text), &_size);
+
+        if (rel) // it OK
+        {
+            width =  (int)_size.cx;
+            height = (int)_size.cy;
+        }
+        else
+        {
+            width = height = 0;
+        }
+    }
+
+    void GetSizeText(const wchar_t* text, int& width, int& height)
+    {
+        SelectObject(m_hdc, m_hfont);
+        SIZE _size;
+        BOOL rel = GetTextExtentPointW(m_hdc, text, wcslen(text), &_size);
+
+        if (rel) // it OK
+        {
+            width  = (int)_size.cx;
+            height = (int)_size.cy;
+        }
+        else
+        {
+            width = height = 0;
+        }
+    }
 
 private:
     //==================================================================================
@@ -125,11 +167,13 @@ public:
         m_hdc      = NULL;
         m_width    = 0;
         m_height   = 0;
+        m_renlist  = 0;
     }
 
     ~GLWinFontRender()
     {
         glDeleteLists(m_textbase, RANG_BASE_LIST);
+        glDeleteLists(m_renlist , 1);
         for (int i = 0; i < m_character_map_list.size(); i++)
         {
             glDeleteLists(m_character_map_list[i], 1);
@@ -307,3 +351,5 @@ public:
         glCallLists((int)wcslen(text), GL_UNSIGNED_SHORT, text);
     }
 };
+
+#endif // GLWINFONT_H

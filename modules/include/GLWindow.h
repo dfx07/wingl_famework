@@ -23,6 +23,7 @@
 #include "GLWinDef.h"
 #include "GLCom.h"
 #include "GLWinControl.h"
+#include "GLWinFont.h"
 
 #include <GL/glew.h>
 #include <GL/wglew.h>
@@ -142,14 +143,16 @@ private:
     // State information
     bool                   m_bShow;
 
-    // Time information
-    //double                 m_timeElapsed;
-    //TimePoint              m_last_time;
-    //TimePoint              m_last_frame;
-    //int                    m_fps;
-
+    // System information : fps -frametime
     FPSCounter             m_fpscounter;
     Timer                  m_update_timer;
+
+    // Text render 2D
+    GLWinFontRender        m_text_render;
+    const char*            m_fontNameTextRender;
+    unsigned int           m_fontSizeTextRender;
+    bool                   m_bSysInfo;
+
 
     // Font information
     const char*            m_fontName;
@@ -276,6 +279,17 @@ public:
         {
             //glViewport(0, 0, m_width, m_height);
             this->m_funOnDraw(this);
+        }
+
+        // Hiển thị thông tin fps - frametime và thông tin hệ thống nếu cần
+        if (m_bSysInfo == true)
+        {
+            char strsys[80];
+            sprintf(strsys, "fps: %d - frametime : %f ms", GetFPS(), GetFrameTime());
+            m_text_render.Use();
+            m_text_render.Write(10, 20, strsys);
+
+            m_text_render.DontUse();
         }
     }
 
@@ -590,8 +604,6 @@ private:
             m_width = rect.right - rect.left;
             m_height = rect.bottom - rect.top;
         }
-
-
     }
 
     //==================================================================================
@@ -681,9 +693,15 @@ private:
     void InitProperties()
     {
         m_fpscounter.Reset();
-        m_update_timer.Reset();
+        //m_update_timer.Reset();
+
+        // Setup Text render;
+        this->ReloadTextRender();
     }
 
+    //===================================================================================
+    // Cập nhật lại title window                                                         
+    //===================================================================================
     void UpdateTitle()
     {
         if (!m_hWnd) return;
@@ -700,6 +718,24 @@ private:
                             m_width, m_height,
                             gpu_device.c_str());
         SetWindowText(m_hWnd, titlebuff);
+    }
+
+    //===================================================================================
+    // Cập nhật lại thông số cho text render window                                      
+    //===================================================================================
+    void UpdateTextRender()
+    {
+        m_text_render.UpdateView(m_width, m_height);
+    }
+
+    //===================================================================================
+    // Load và cập nhật lại text render trên window                                      
+    //===================================================================================
+    void ReloadTextRender()
+    {
+        // Setup Text render;
+        m_text_render.Init(this->GetHDC(), m_width, m_height);
+        m_text_render.LoadFont(m_fontNameTextRender, m_fontSizeTextRender);
     }
 
     //===================================================================================
@@ -771,6 +807,29 @@ private:
             }
         }
     }
+//======================================================================================
+//⮟⮟ Triển khai chức năng hỗ trợ cho window                                            
+//======================================================================================
+public:
+
+    //===================================================================================
+    // Hiển thị text ra window                                                           
+    //===================================================================================
+    void WriteText(const char* text, int x, int y, float r = 1.0f, float g = 1.0f,
+                                                   float b = 1.0f, float a = 1.0f)
+    {
+        m_text_render.Use();
+        m_text_render.Write(x, y, text, r, g, b, a);
+        m_text_render.DontUse();
+    }
+
+    //===================================================================================
+    // Có hiển thị thông tin hệ thống lên window hay không                               
+    //===================================================================================
+    void WriteSystemInfo(bool bShow = true)
+    {
+        m_bSysInfo = bShow;
+    }
 
 public:
 
@@ -787,6 +846,12 @@ public:
         this->m_fontSize   = 12;
         this->m_fontWeight = FontWeight::Normal;
 
+        // setup default text render
+        this->m_fontNameTextRender = "Consolas";
+        this->m_fontSizeTextRender = 16;
+
+        this->m_bSysInfo = false;
+
         //ResetTimer();
     }
 
@@ -799,12 +864,6 @@ public:
         this->m_pProp   = win.m_pProp;
         //ResetTimer();
     }
-
-    //void ResetTimer()
-    //{
-    //    this->m_timeElapsed = 0;
-    //    this->m_last_time = high_resolution_clock::now();
-    //}
 
     void SetupAdvanced(WndProp prop)
     {
@@ -1206,6 +1265,7 @@ public:
                 glViewport(0, 0, win->m_width, win->m_height);
                 win->OnResize();
                 win->UpdateTitle();
+                win->UpdateTextRender();
                 win->OnDraw();
                 win->SwapBuffer();
 
