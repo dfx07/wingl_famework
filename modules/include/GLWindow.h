@@ -164,6 +164,7 @@ private:
     void(*m_funOnDestroy)      (Window* win) = NULL;
     void(*m_funOnPaint)        (Window* win) = NULL;
     void(*m_funOnMouse)        (Window* win) = NULL;
+    void(*m_funOnMouseRealt)   (Window* win) = NULL;
     void(*m_funOnMouseMove)    (Window* win) = NULL;
     void(*m_funOnKeyboard)     (Window* win) = NULL;
     void(*m_funOnProcess)      (Window* win) = NULL;
@@ -171,19 +172,20 @@ private:
     void(*m_funOnMouseScroll)  (Window* win) = NULL;
 
 public:
-    HWND GetHwnd()                                          { return m_hWnd; }
-    HDC  GetHDC()                                           { return m_pRender.m_hDc;}
+    HWND GetHwnd()                                              { return m_hWnd; }
+    HDC  GetHDC()                                               { return m_pRender.m_hDc;}
     // Get set don't care
-    void SetOnDrawfunc(void(*funOnDraw)(Window*))           { m_funOnDraw = funOnDraw; }
-    void SetOnCreatedfunc(void(*funOnCreate)(Window*))      { m_funOnCreated = funOnCreate; }
-    void SetOnDestroyfunc(void(*funOnDestroy)(Window*))     { m_funOnDestroy = funOnDestroy; }
-    void SetOnPaintfunc(void(*funOnPaint)(Window*))         { m_funOnPaint = funOnPaint; }
-    void SetOnMouseButtonfunc(void(*funOnMouse)(Window*))   { m_funOnMouse = funOnMouse; }
-    void SetOnMouseMovefunc(void(*funOnMouseMove)(Window*)) { m_funOnMouseMove = funOnMouseMove; }
-    void SetOnKeyboardfunc(void(*funOnKeyboard)(Window*))   { m_funOnKeyboard = funOnKeyboard; }
-    void SetProcessfunc(void(*funProcess)(Window*))         { m_funOnProcess = funProcess; }
-    void SetOnResizefunc(void(*funOnResize)(Window*))       { m_funOnResize = funOnResize; }
-    void SetOnMouseScrollfunc(void(*funOnScroll)(Window*))  { m_funOnMouseScroll = funOnScroll; }
+    void SetOnDrawfunc(void(*funOnDraw)(Window*))               { m_funOnDraw = funOnDraw; }
+    void SetOnCreatedfunc(void(*funOnCreate)(Window*))          { m_funOnCreated = funOnCreate; }
+    void SetOnDestroyfunc(void(*funOnDestroy)(Window*))         { m_funOnDestroy = funOnDestroy; }
+    void SetOnPaintfunc(void(*funOnPaint)(Window*))             { m_funOnPaint = funOnPaint; }
+    void SetOnMouseButtonfunc(void(*funOnMouse)(Window*))       { m_funOnMouse = funOnMouse; }
+    void SetOnMouseButtonRealtfunc(void(*funOnMouse)(Window*))  { m_funOnMouseRealt = funOnMouse; }
+    void SetOnMouseMovefunc(void(*funOnMouseMove)(Window*))     { m_funOnMouseMove = funOnMouseMove; }
+    void SetOnKeyboardfunc(void(*funOnKeyboard)(Window*))       { m_funOnKeyboard = funOnKeyboard; }
+    void SetProcessfunc(void(*funProcess)(Window*))             { m_funOnProcess = funProcess; }
+    void SetOnResizefunc(void(*funOnResize)(Window*))           { m_funOnResize = funOnResize; }
+    void SetOnMouseScrollfunc(void(*funOnScroll)(Window*))      { m_funOnMouseScroll = funOnScroll; }
 
     //==================================================================================
     //⮟⮟ Triển khai hàm   - not important                                              
@@ -223,6 +225,11 @@ public:
     }
     virtual void OnProcess()
     {
+        if (m_funOnMouseRealt)
+        {
+            this->m_funOnMouseRealt(this);
+        }
+
         if (m_funOnProcess)
         {
             this->m_funOnProcess(this);
@@ -599,9 +606,9 @@ private:
 
         // Update size window after created
         RECT rect;
-        if (GetWindowRect(m_hWnd, &rect))
+        if (GetClientRect(m_hWnd, &rect))
         {
-            m_width = rect.right - rect.left;
+            m_width  = rect.right - rect.left;
             m_height = rect.bottom - rect.top;
         }
     }
