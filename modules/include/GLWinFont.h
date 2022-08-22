@@ -172,6 +172,8 @@ public:
 
     ~GLWinFontRender()
     {
+        DeleteObject(m_hfont);
+
         glDeleteLists(m_textbase, RANG_BASE_LIST);
         glDeleteLists(m_renlist , 1);
         for (int i = 0; i < m_character_map_list.size(); i++)
